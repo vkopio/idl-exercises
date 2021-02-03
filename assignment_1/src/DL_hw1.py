@@ -112,4 +112,4 @@ with torch.no_grad():
             print('TEST DATA: %s, GOLD LABEL: %s, GOLD CLASS %d, OUTPUT: %d' % 
                  (' '.join(tweet['BODY'][:-1]), tweet['SENTIMENT'], gold_class, predicted))
 
-    print('epoch: %d, loss: %.4f' % (epoch+1, total_loss*BATCH_SIZE/len(data['training'])))
+    print('test accuracy: %.2f' % (100.0 * correct / len(data['test.gold'])))
