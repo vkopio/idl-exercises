@@ -12,22 +12,17 @@ import torch.nn.functional as F
 import torch.optim as optim
 import random
 
-#ATTENTION: If necessary, add the paths to your data_semeval.py and paths.py here:
-#import sys
-#sys.path.append('</path/to/below/modules>')
 from data_semeval import *
 from paths import data_dir
 
 
 #--- hyperparameters ---
-
 N_CLASSES = len(LABEL_INDICES)
 N_EPOCHS = 10
 LEARNING_RATE = 0.05
 BATCH_SIZE = 1
 REPORT_EVERY = 1
-IS_VERBOSE = True
-
+IS_VERBOSE = False
 
 def make_bow(tweet, indices):
     feature_ids = list(indices[tok] for tok in tweet['BODY'] if tok in indices)
@@ -51,53 +46,54 @@ def generate_bow_representations(data):
 def label_to_idx(label):
     return torch.LongTensor([LABEL_INDICES[label]])
 
-
-
 #--- model ---
-
 class FFNN(nn.Module):
-    # Feel free to add whichever arguments you like here.
     def __init__(self, vocab_size, n_classes, extra_arg_1=None, extra_arg_2=None):
         super(FFNN, self).__init__()
-        # WRITE CODE HERE
-        pass
+        self.hidden = nn.Linear(vocab_size, 256)
+        self.output = nn.Linear(256, n_classes)
 
     def forward(self, x):
-        # WRITE CODE HERE
-        pass
+        x = F.relu(self.hidden(x))
+        x = F.log_softmax(self.output(x), dim=1)
 
-
+        return x
 
 #--- data loading ---
 data = read_semeval_datasets(data_dir)
 indices, vocab_size = generate_bow_representations(data)
 
-
-
 #--- set up ---
-
-# WRITE CODE HERE
 model = FFNN(vocab_size, N_CLASSES) #add extra arguments here if you use
-loss_function = None
-optimizer = None
-
-
+loss_function = nn.NLLLoss()
+optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 #--- training ---
 for epoch in range(N_EPOCHS):
     total_loss = 0
     # Generally speaking, it's a good idea to shuffle your
     # datasets once every epoch.
-    random.shuffle(data['training'])    
+    random.shuffle(data['training'])
 
-    for i in range(int(len(data['training'])/BATCH_SIZE)):
-        minibatch = data['training'][i*BATCH_SIZE:(i+1)*BATCH_SIZE]
+    iterations = int(len(data['training'])/BATCH_SIZE)
 
-        # WRITE CODE HERE            
-        pass
+    for i in range(iterations):
+        print("{} / {}".format(i, iterations), end="\r", flush=True)
+
+        minibatch = data['training'][i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
+        target = label_to_idx(minibatch[0]['SENTIMENT'])
+
+        pred = model(minibatch[0]['BOW'])
+        output = loss_function(pred, target)
+
+        total_loss += output.data.item()
+
+        output.backward()
+        optimizer.step()
+        optimizer.zero_grad()
                               
-    if ((epoch+1) % REPORT_EVERY) == 0:
-        print('epoch: %d, loss: %.4f' % (epoch+1, total_loss*100/len(data['training'])))
+    if ((epoch + 1) % REPORT_EVERY) == 0:
+        print('epoch: %d, loss: %.4f' % (epoch + 1, total_loss / len(data['training'])))
 
 
 
@@ -116,5 +112,4 @@ with torch.no_grad():
             print('TEST DATA: %s, GOLD LABEL: %s, GOLD CLASS %d, OUTPUT: %d' % 
                  (' '.join(tweet['BODY'][:-1]), tweet['SENTIMENT'], gold_class, predicted))
 
-    print('test accuracy: %.2f' % (100.0 * correct / len(data['test.gold'])))
-
+    print('epoch: %d, loss: %.4f' % (epoch+1, total_loss*BATCH_SIZE/len(data['training'])))
