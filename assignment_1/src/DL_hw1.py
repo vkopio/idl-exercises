@@ -102,11 +102,10 @@ correct = 0
 with torch.no_grad():
     for tweet in data['test.gold']:
         gold_class = label_to_idx(tweet['SENTIMENT'])
+        prediction = model(tweet['BOW'])
+        predicted = torch.argmax(prediction).data.item()
 
-        # WRITE CODE HERE
-        # You can, but for the sake of this homework do not have to,
-        # use batching for the test data.
-        predicted = -1
+        correct += int(predicted == gold_class.data[0].item())
 
         if IS_VERBOSE:
             print('TEST DATA: %s, GOLD LABEL: %s, GOLD CLASS %d, OUTPUT: %d' % 
