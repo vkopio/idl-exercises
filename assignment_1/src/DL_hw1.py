@@ -15,12 +15,10 @@ import random
 from data_semeval import *
 from paths import data_dir
 
-
-#--- hyperparameters ---
 N_CLASSES = len(LABEL_INDICES)
 N_EPOCHS = 10
-LEARNING_RATE = 0.05
-BATCH_SIZE = 1
+LEARNING_RATE = 0.5
+BATCH_SIZE = 100
 REPORT_EVERY = 1
 IS_VERBOSE = False
 
@@ -46,12 +44,25 @@ def generate_bow_representations(data):
 def label_to_idx(label):
     return torch.LongTensor([LABEL_INDICES[label]])
 
-#--- model ---
+def make_target(tweets):
+    list_of_targets = list(
+        map(lambda tweet: label_to_idx(tweet['SENTIMENT']), tweets)
+    )
+
+    return torch.cat(list_of_targets)
+
+def make_batch(tweets):
+    list_of_bows = list(
+        map(lambda tweet: tweet['BOW'], tweets)
+    )
+
+    return torch.cat(list_of_bows)
+
 class FFNN(nn.Module):
     def __init__(self, vocab_size, n_classes, extra_arg_1=None, extra_arg_2=None):
         super(FFNN, self).__init__()
-        self.hidden = nn.Linear(vocab_size, 256)
-        self.output = nn.Linear(256, n_classes)
+        self.hidden = nn.Linear(vocab_size, 6)
+        self.output = nn.Linear(6, n_classes)
 
     def forward(self, x):
         x = F.relu(self.hidden(x))
@@ -59,20 +70,17 @@ class FFNN(nn.Module):
 
         return x
 
-#--- data loading ---
 data = read_semeval_datasets(data_dir)
 indices, vocab_size = generate_bow_representations(data)
 
-#--- set up ---
-model = FFNN(vocab_size, N_CLASSES) #add extra arguments here if you use
+model = FFNN(vocab_size, N_CLASSES)
 loss_function = nn.NLLLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=LEARNING_RATE)
 
 #--- training ---
 for epoch in range(N_EPOCHS):
     total_loss = 0
-    # Generally speaking, it's a good idea to shuffle your
-    # datasets once every epoch.
+
     random.shuffle(data['training'])
 
     iterations = int(len(data['training'])/BATCH_SIZE)
@@ -80,11 +88,13 @@ for epoch in range(N_EPOCHS):
     for i in range(iterations):
         print("{} / {}".format(i, iterations), end="\r", flush=True)
 
-        minibatch = data['training'][i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
-        target = label_to_idx(minibatch[0]['SENTIMENT'])
+        tweet_batch = data['training'][i * BATCH_SIZE : (i + 1) * BATCH_SIZE]
 
-        pred = model(minibatch[0]['BOW'])
-        output = loss_function(pred, target)
+        batch = make_batch(tweet_batch)
+        target = make_target(tweet_batch)
+
+        prediction = model(batch)
+        output = loss_function(prediction, target)
 
         total_loss += output.data.item()
 
@@ -94,8 +104,6 @@ for epoch in range(N_EPOCHS):
                               
     if ((epoch + 1) % REPORT_EVERY) == 0:
         print('epoch: %d, loss: %.4f' % (epoch + 1, total_loss / len(data['training'])))
-
-
 
 #--- test ---
 correct = 0
