@@ -20,7 +20,6 @@ LR = 0.01
 NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
-
 # --- Dataset initialization ---
 
 # We transform image files' contents to tensors
