@@ -21,7 +21,6 @@ NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
 
-
 # --- Dataset initialization ---
 
 # We transform image files' contents to tensors
@@ -103,4 +102,3 @@ with torch.no_grad():
         print('Evaluating: Batch %d/%d: Loss: %.4f | Test Acc: %.3f%% (%d/%d)' % 
               (batch_num, len(test_loader), test_loss / (batch_num + 1), 
                100. * test_correct / total, test_correct, total))
-
