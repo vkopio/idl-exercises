@@ -1,4 +1,3 @@
-import math
 import torch
 import torch.optim as optim
 import torch.utils.data
@@ -13,7 +12,7 @@ from torchvision import transforms, datasets
 NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
-N_EPOCHS = 1
+N_EPOCHS = 10
 BATCH_SIZE = 100
 LEARNING_RATE = 0.01
 
@@ -96,8 +95,10 @@ def test(data_loader):
 
 
 def train():
+    current_validation_accuracy = 0
+
     for epoch_index in range(N_EPOCHS):
-        train_loss = 0
+        cumulative_loss = 0
         train_correct = 0
         total = len(train_loader.dataset)
 
@@ -107,7 +108,7 @@ def train():
             prediction = model(data)
             output = loss_function(prediction, target)
 
-            train_loss += output.data.item()
+            cumulative_loss += output.data.item()
             _, predicted = torch.max(prediction, 1)
             train_correct += (predicted == target).sum().item()
 
@@ -115,19 +116,25 @@ def train():
             optimizer.step()
             optimizer.zero_grad()
 
-            print('Training: Epoch %d/%d | Batch %d/%d | Loss: %.4f | Train Acc: %.3f%% (%d/%d)' %
+            print('Epoch %d | batch %d %% done' %
                   (epoch_index + 1,
-                   N_EPOCHS,
-                   batch_index,
-                   len(train_loader),
-                   train_loss / (batch_index + 1),
-                   100. * train_correct / total,
-                   train_correct,
-                   total),
+                   100 * (batch_index + 1) / len(train_loader),),
                   end="\r",
                   flush=True)
 
-        # Please implement early stopping here.
+        new_validation_accuracy, new_validation_loss = test(dev_loader)
+        print('Epoch %d | training acc %.4f, loss %.4f | validation acc %.4f, loss %.4f' %
+              (epoch_index + 1,
+               train_correct / total,
+               cumulative_loss / len(train_loader),
+               new_validation_accuracy,
+               new_validation_loss))
+
+        if current_validation_accuracy > new_validation_accuracy:
+            print('Old validation accuracy was greater, terminating.')
+            break
+
+        current_validation_accuracy = new_validation_accuracy
 
 
 if __name__ == "__main__":
@@ -135,4 +142,4 @@ if __name__ == "__main__":
 
     accuracy, loss = test(test_loader)
 
-    print('Test set loss: %.4f | accuracy: %.4f%%' % (loss, accuracy))
+    print('Test set loss: %.4f | accuracy: %.4f %%' % (loss, accuracy))
