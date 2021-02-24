@@ -1,3 +1,9 @@
+"""
+This model can reach test set loss: 0.2552 and accuracy: 0.9221 with naive early
+stopping (stops if new validation accuracy is lower than earlier) random erasing
+and gaussian noise.
+"""
+
 import torch
 import torch.optim as optim
 import torch.utils.data
@@ -12,9 +18,9 @@ from torchvision import transforms, datasets
 NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
-N_EPOCHS = 10
+N_EPOCHS = 30
 BATCH_SIZE = 100
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.005
 
 
 class AddGaussianNoise(object):
@@ -82,7 +88,7 @@ train_loader = load_dataset(
     'train',
     shuffle=True,
     extra_transforms=[
-        AddGaussianNoise(0.05, 0.05),
+        AddGaussianNoise(0.1, 0.05),
         transforms.RandomErasing()
     ]
 )
