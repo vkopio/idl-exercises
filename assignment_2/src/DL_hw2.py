@@ -76,9 +76,8 @@ loss_function = nn.CrossEntropyLoss()
 
 
 def test(data_loader):
-    test_loss = 0
-    test_correct = 0
-    total = len(data_loader.dataset)
+    cumulative_loss = 0
+    correct_count = 0
 
     with torch.no_grad():
         for batch_index, (data, target) in enumerate(data_loader):
@@ -87,16 +86,13 @@ def test(data_loader):
             prediction = model(data)
             _, predicted = torch.max(prediction.data, 1)
 
-            test_correct += (predicted == target).sum()
-            test_loss += loss_function(prediction, target)
+            correct_count += (predicted == target).sum()
+            cumulative_loss += loss_function(prediction, target)
 
-            print('Evaluating: Batch %d/%d: Loss: %.4f | Test Acc: %.3f%% (%d/%d)' %
-                  (batch_index + 1,
-                   len(test_loader),
-                   test_loss / (batch_index + 1),
-                   100. * test_correct / total,
-                   test_correct,
-                   total))
+    accuracy = correct_count / len(data_loader.dataset)
+    loss = cumulative_loss / len(data_loader)
+
+    return accuracy, loss
 
 
 def train():
@@ -136,4 +132,7 @@ def train():
 
 if __name__ == "__main__":
     train()
-    test(test_loader)
+
+    accuracy, loss = test(test_loader)
+
+    print('Test set loss: %.4f | accuracy: %.4f%%' % (loss, accuracy))
