@@ -123,6 +123,7 @@ def train():
                   flush=True)
 
         new_validation_accuracy, new_validation_loss = test(dev_loader)
+
         print('Epoch %d | training acc %.4f, loss %.4f | validation acc %.4f, loss %.4f' %
               (epoch_index + 1,
                train_correct / total,
