@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.optim as optim
 import torch.utils.data
@@ -12,7 +13,7 @@ from torchvision import transforms, datasets
 NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
-N_EPOCHS = 10
+N_EPOCHS = 1
 BATCH_SIZE = 100
 LEARNING_RATE = 0.01
 
@@ -74,13 +75,37 @@ optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
 loss_function = nn.CrossEntropyLoss()
 
 
+def test(data_loader):
+    test_loss = 0
+    test_correct = 0
+    total = len(data_loader.dataset)
+
+    with torch.no_grad():
+        for batch_index, (data, target) in enumerate(data_loader):
+            data, target = data.to(device), target.to(device)
+
+            prediction = model(data)
+            _, predicted = torch.max(prediction.data, 1)
+
+            test_correct += (predicted == target).sum()
+            test_loss += loss_function(prediction, target)
+
+            print('Evaluating: Batch %d/%d: Loss: %.4f | Test Acc: %.3f%% (%d/%d)' %
+                  (batch_index + 1,
+                   len(test_loader),
+                   test_loss / (batch_index + 1),
+                   100. * test_correct / total,
+                   test_correct,
+                   total))
+
+
 def train():
-    for epoch in range(N_EPOCHS):
+    for epoch_index in range(N_EPOCHS):
         train_loss = 0
         train_correct = 0
-        total = 0
+        total = len(train_loader.dataset)
 
-        for batch_num, (data, target) in enumerate(train_loader):
+        for batch_index, (data, target) in enumerate(train_loader):
             data, target = data.to(device), target.to(device)
 
             prediction = model(data)
@@ -89,18 +114,17 @@ def train():
             train_loss += output.data.item()
             _, predicted = torch.max(prediction, 1)
             train_correct += (predicted == target).sum().item()
-            total += target.size(0)
 
             output.backward()
             optimizer.step()
             optimizer.zero_grad()
 
             print('Training: Epoch %d/%d | Batch %d/%d | Loss: %.4f | Train Acc: %.3f%% (%d/%d)' %
-                  (epoch + 1,
+                  (epoch_index + 1,
                    N_EPOCHS,
-                   batch_num,
+                   batch_index,
                    len(train_loader),
-                   train_loss / (batch_num + 1),
+                   train_loss / (batch_index + 1),
                    100. * train_correct / total,
                    train_correct,
                    total),
@@ -110,31 +134,6 @@ def train():
         # Please implement early stopping here.
 
 
-def test():
-    test_loss = 0
-    test_correct = 0
-    total = 0
-
-    with torch.no_grad():
-        for batch_num, (data, target) in enumerate(test_loader):
-            data, target = data.to(device), target.to(device)
-
-            prediction = model(data)
-            _, predicted = torch.max(prediction.data, 1)
-
-            total += target.size(0)
-            test_correct += (predicted == target).sum()
-            test_loss += loss_function(prediction, target)
-
-            print('Evaluating: Batch %d/%d: Loss: %.4f | Test Acc: %.3f%% (%d/%d)' %
-                  (batch_num + 1,
-                   len(test_loader),
-                   test_loss / (batch_num + 1),
-                   100. * test_correct / total,
-                   test_correct,
-                   total))
-
-
 if __name__ == "__main__":
     train()
-    test()
+    test(test_loader)
