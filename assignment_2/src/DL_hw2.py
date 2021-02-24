@@ -17,6 +17,18 @@ BATCH_SIZE = 100
 LEARNING_RATE = 0.01
 
 
+class AddGaussianNoise(object):
+    def __init__(self, mean=0., std=1.):
+        self.std = std
+        self.mean = mean
+
+    def __call__(self, tensor):
+        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
+
 def load_dataset(dataset_name, shuffle=False, extra_transforms=[]):
     common_transforms = [
         transforms.Grayscale(num_output_channels=1),
@@ -70,6 +82,7 @@ train_loader = load_dataset(
     'train',
     shuffle=True,
     extra_transforms=[
+        AddGaussianNoise(0.05, 0.05),
         transforms.RandomErasing()
     ]
 )
