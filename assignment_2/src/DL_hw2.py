@@ -13,8 +13,7 @@ NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
 
 N_EPOCHS = 10
-BATCH_SIZE_TRAIN = 100
-BATCH_SIZE_TEST = 100
+BATCH_SIZE = 100
 LEARNING_RATE = 0.01
 
 
@@ -30,7 +29,7 @@ def load_dataset(dataset_name, shuffle=False, extra_transforms=[]):
 
     data_loader = torch.utils.data.DataLoader(
         dataset=dataset,
-        batch_size=BATCH_SIZE_TRAIN,
+        batch_size=BATCH_SIZE,
         shuffle=shuffle
     )
 
