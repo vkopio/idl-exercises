@@ -19,7 +19,9 @@ LEARNING_RATE = 0.01
 
 def load_dataset(dataset_name, shuffle=False, extra_transforms=[]):
     common_transforms = [
-        transforms.ToTensor()
+        transforms.Grayscale(num_output_channels=1),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=0.5, std=0.5, inplace=True)
     ]
 
     dataset = datasets.ImageFolder(
@@ -41,7 +43,7 @@ class CNN(nn.Module):
         super(CNN, self).__init__()
         self.pool = nn.MaxPool2d(2, 2)
         self.seq1 = nn.Sequential(
-            nn.Conv2d(in_channels=3, out_channels=6, kernel_size=5),
+            nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5),
             nn.ReLU(),
             self.pool,
         )
