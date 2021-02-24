@@ -66,7 +66,14 @@ class CNN(nn.Module):
         return x
 
 
-train_loader = load_dataset('train', shuffle=True, extra_transforms=[])
+train_loader = load_dataset(
+    'train',
+    shuffle=True,
+    extra_transforms=[
+        transforms.RandomErasing()
+    ]
+)
+
 dev_loader = load_dataset('dev')
 test_loader = load_dataset('test')
 
