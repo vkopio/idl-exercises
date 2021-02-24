@@ -3,11 +3,11 @@ import torch.optim as optim
 import torch.utils.data
 import torch.backends.cudnn as cudnn
 import torchvision
-from torchvision import transforms, datasets
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from torchvision import transforms, datasets
 
 #--- hyperparameters ---
 N_EPOCHS = 10
