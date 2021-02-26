@@ -21,7 +21,7 @@ DATA_DIR = '../data/sign_mnist_%s'
 
 N_EPOCHS = 30
 BATCH_SIZE = 100
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.0001
 
 
 class AddGaussianNoise(object):
@@ -91,6 +91,7 @@ class CNN(nn.Module):
         #x = F.relu(self.fc1(x))
         #x = F.relu(self.fc2(x))
         #x = self.fc3(x)
+        x = F.log_softmax(x, dim=1)
         return x
 
 
@@ -109,7 +110,8 @@ test_loader = load_dataset('test')
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = CNN().to(device)
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+# optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 loss_function = nn.CrossEntropyLoss()
 
 
