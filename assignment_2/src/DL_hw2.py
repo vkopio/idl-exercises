@@ -14,6 +14,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from torchvision import transforms, datasets
+from debug import *
 
 NUM_CLASSES = 24
 DATA_DIR = '../data/sign_mnist_%s'
@@ -55,32 +56,41 @@ def load_dataset(dataset_name, shuffle=False, extra_transforms=[]):
 
     return data_loader
 
-
 class CNN(nn.Module):
     def __init__(self, num_classes=NUM_CLASSES):
         super(CNN, self).__init__()
-        self.pool = nn.MaxPool2d(2, 2)
         self.seq1 = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5),
+            nn.Conv2d(in_channels=1, out_channels=28, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
-            self.pool,
+            nn.BatchNorm2d(num_features=28),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
         )
         self.seq2 = nn.Sequential(
-            nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5),
+            nn.Conv2d(in_channels=28, out_channels=64, kernel_size=3),
             nn.ReLU(),
-            self.pool,
+            nn.BatchNorm2d(num_features=64),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+            nn.Dropout(p=0.1),
         )
-        self.fc1 = nn.Linear(16 * 4 * 4, 120)
+        self.seq3 = nn.Sequential(
+            nn.Linear(in_features=64 * 6 * 6, out_features=512),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(in_features=512, out_features=NUM_CLASSES)
+        )
+        self.fc1 = nn.Linear(64 * 6 * 6, 120)
         self.fc2 = nn.Linear(120, 84)
         self.fc3 = nn.Linear(84, NUM_CLASSES)
 
     def forward(self, x):
         x = self.seq1(x)
         x = self.seq2(x)
-        x = x.view(-1, 16 * 4 * 4)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = x.view(x.size(0), -1)
+        x = self.seq3(x)
+        #x = x.view(-1, 64 * 6 * 6)
+        #x = F.relu(self.fc1(x))
+        #x = F.relu(self.fc2(x))
+        #x = self.fc3(x)
         return x
 
 
@@ -88,10 +98,11 @@ train_loader = load_dataset(
     'train',
     shuffle=True,
     extra_transforms=[
-        AddGaussianNoise(0.1, 0.05),
-        transforms.RandomErasing()
+        AddGaussianNoise(0.1, 0.01),
     ]
 )
+
+# show_images(train_loader)
 
 dev_loader = load_dataset('dev')
 test_loader = load_dataset('test')
@@ -159,9 +170,9 @@ def train():
                new_validation_accuracy,
                new_validation_loss))
 
-        if current_validation_accuracy > new_validation_accuracy:
-            print('Old validation accuracy was greater, terminating.')
-            break
+        #if current_validation_accuracy > new_validation_accuracy:
+        #    print('Old validation accuracy was greater, terminating.')
+        #    break
 
         current_validation_accuracy = new_validation_accuracy
 
