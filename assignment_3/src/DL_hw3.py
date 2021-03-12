@@ -28,8 +28,7 @@ LR = 0.01
 
 
 # Auxilary functions for data preparation
-tok = spacy.load('en_core_web_sm', disable=['parser', 'tagger', 'ner'])
-
+tok = spacy.load('en_core_web_sm', disable=['parser', 'tagger', 'ner', 'lemmatizer'])
 
 def tokenizer(s):
     return [w.text.lower() for w in tok(tweet_clean(s))]
@@ -79,12 +78,14 @@ class RNN(nn.Module):
         self.hidden_dim = hidden_dim
         self.embedding = nn.Embedding(30116, EMBEDDING_DIM)
         self.lstm = nn.LSTM(EMBEDDING_DIM, hidden_dim, num_layers=5)
-        self.fc = nn.Linear(hidden_dim, (OUTPUT_DIM))
+        self.fc = nn.Linear(hidden_dim, OUTPUT_DIM)
 
-    def forward(self, x, seq):
-        embeds = self.embedding(x)
-        out, _ = self.lstm(embeds)
-        x = self.fc(out[-1])
+    def forward(self, x, lengths):
+        embedded = self.embedding(x)
+        packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, lengths)
+        packed_output, _ = self.lstm(packed_embedded)
+        output, output_lengths = nn.utils.rnn.pad_packed_sequence(packed_output)
+        x = self.fc(output[-1])
         x = F.log_softmax(x, dim=1)
         return x
 
