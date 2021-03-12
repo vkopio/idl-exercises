@@ -23,6 +23,7 @@ import time
 N_EPOCHS = 5
 EMBEDDING_DIM = 200
 OUTPUT_DIM = 2
+LR = 0.01
 
 
 # Auxilary functions for data preparation
@@ -74,12 +75,17 @@ def epoch_time(start_time, end_time):
 class RNN(nn.Module):
     def __init__(self):
         super().__init__()
-        # WRITE CODE HERE
-        pass
+        self.hidden_dim = hidden_dim
+        self.embedding = nn.Embedding(30116, EMBEDDING_DIM)
+        self.lstm = nn.LSTM(EMBEDDING_DIM, hidden_dim, num_layers=5)
+        self.fc = nn.Linear(hidden_dim, (OUTPUT_DIM))
 
     def forward(self):
-        # WRITE CODE HERE
-        return 0
+        embeds = self.embedding(x)
+        out, _ = self.lstm(embeds)
+        x = self.fc(out[-1])
+        x = F.log_softmax(x, dim=1)
+        return x
 
 
 if __name__ == '__main__':
@@ -120,8 +126,14 @@ if __name__ == '__main__':
         skip_header=False,
     )
 
-    txt_field.build_vocab(train_data, dev_data, max_size=100000,
-                          vectors='glove.twitter.27B.200d', unk_init=torch.Tensor.normal_)
+    txt_field.build_vocab(
+        train_data,
+        dev_data,
+        max_size=100000,
+        vectors='glove.twitter.27B.200d',
+        unk_init=torch.Tensor.normal_,
+    )
+
     label_field.build_vocab(train_data)
 
     train_iter, dev_iter, test_iter = torchtext.data.BucketIterator.splits(
@@ -138,8 +150,9 @@ if __name__ == '__main__':
     PAD_IDX = txt_field.vocab.stoi[txt_field.pad_token]
     UNK_IDX = txt_field.vocab.stoi[txt_field.unk_token]
 
-    # WRITE CODE HERE
-    model = None
+    hidden_dim, batch_size = 30, 50
+    model = RNN(hidden_dim, batch_size)
+    print(model)
 
     # Copy the pretrained embeddings into the model
     pretrained_embeddings = txt_field.vocab.vectors
@@ -149,9 +162,8 @@ if __name__ == '__main__':
     model.embedding.weight.data[UNK_IDX] = torch.zeros(EMBEDDING_DIM)
     model.embedding.weight.data[PAD_IDX] = torch.zeros(EMBEDDING_DIM)
 
-    # WRITE CODE HERE
-    optimizer = None
-    criterion = None
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
     model = model.to(device)
     criterion = criterion.to(device)
@@ -165,11 +177,22 @@ if __name__ == '__main__':
         model.train()
 
         for batch in train_iter:
-            # WRITE CODE HERE
-            pass
+            sequence_len = torch.max(batch.TweetText[1])
+
+            model.zero_grad()
+            outputs = model(batch.TweetText[0], sequence_len)
+
+            epoch_acc += get_accuracy(outputs, batch.Label)
+            loss = criterion(outputs, batch.Label)
+            epoch_loss += loss
+            loss.backward()
+            optimizer.step()
 
         train_loss, train_acc = (
-            epoch_loss / len(train_iter), epoch_acc / len(train_iter))
+            epoch_loss / len(train_iter),
+            epoch_acc / len(train_iter)
+        )
+
         valid_loss, valid_acc = evaluate(model, dev_iter, criterion)
 
         end_time = time.time()
