@@ -14,15 +14,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import torchtext
+import torchtext.legacy as torchtext
 import spacy
 import regex as re
-from torchtext import vocab
+from torchtext.legacy import vocab
 import time
 
 N_EPOCHS = 5
 EMBEDDING_DIM = 200
 OUTPUT_DIM = 2
+BATCH_SIZE = 50
 LR = 0.01
 
 
@@ -73,14 +74,14 @@ def epoch_time(start_time, end_time):
 
 
 class RNN(nn.Module):
-    def __init__(self):
+    def __init__(self, hidden_dim, batch_size):
         super().__init__()
         self.hidden_dim = hidden_dim
         self.embedding = nn.Embedding(30116, EMBEDDING_DIM)
         self.lstm = nn.LSTM(EMBEDDING_DIM, hidden_dim, num_layers=5)
         self.fc = nn.Linear(hidden_dim, (OUTPUT_DIM))
 
-    def forward(self):
+    def forward(self, x, seq):
         embeds = self.embedding(x)
         out, _ = self.lstm(embeds)
         x = self.fc(out[-1])
@@ -138,8 +139,8 @@ if __name__ == '__main__':
 
     train_iter, dev_iter, test_iter = torchtext.data.BucketIterator.splits(
         datasets=(train_data, dev_data, test_data),
-        batch_sizes=(50, 50, 50),  # batch sizes of train, dev, test
-        sort_key=lambda x: len(x.TweetText),  # how to sort text
+        batch_sizes=(BATCH_SIZE, BATCH_SIZE, BATCH_SIZE),
+        sort_key=lambda x: len(x.TweetText),
         device=device,
         sort_within_batch=True,
         repeat=False,
@@ -150,8 +151,8 @@ if __name__ == '__main__':
     PAD_IDX = txt_field.vocab.stoi[txt_field.pad_token]
     UNK_IDX = txt_field.vocab.stoi[txt_field.unk_token]
 
-    hidden_dim, batch_size = 30, 50
-    model = RNN(hidden_dim, batch_size)
+    hidden_dim = 30
+    model = RNN(hidden_dim, BATCH_SIZE)
     print(model)
 
     # Copy the pretrained embeddings into the model
@@ -177,10 +178,9 @@ if __name__ == '__main__':
         model.train()
 
         for batch in train_iter:
-            sequence_len = torch.max(batch.TweetText[1])
-
+            text, text_lengths = batch.TweetText
             model.zero_grad()
-            outputs = model(batch.TweetText[0], sequence_len)
+            outputs = model(text, text_lengths)
 
             epoch_acc += get_accuracy(outputs, batch.Label)
             loss = criterion(outputs, batch.Label)
